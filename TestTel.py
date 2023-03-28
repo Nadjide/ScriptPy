@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import tkinter as tk
 from openpyxl.styles import PatternFill
 from tkinterdnd2 import DND_FILES, TkinterDnD
