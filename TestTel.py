@@ -24,6 +24,12 @@ def traiter_fichier(fichier):
     df = pd.read_excel(fichier)
     num_telephones_invalides = 0
     num_doublons = 0
+    num_telephones_vides = 0
+
+    # Ajouter une colonne temporaire avec les numéros corrigés
+    df['Telephone_corrige'] = df['Telephone'].apply(lambda x: est_valide(x)[1] if not pd.isna(x) else x)
+    df['Valide'] = df['Telephone_corrige'].apply(lambda x: est_valide(x)[0])
+    df['Doublon'] = df[df['Valide']].groupby('Telephone_corrige')['Telephone_corrige'].transform('count') > 1
 
     # Construire le chemin du fichier traité
     chemin_dossier, nom_fichier = os.path.split(fichier)
@@ -43,6 +49,7 @@ def traiter_fichier(fichier):
     # Copier les données et appliquer la mise en forme
     fill_invalides = PatternFill(start_color='FFC7CE', end_color='FFC7CE', fill_type='solid')
     fill_doublons = PatternFill(start_color='FFFF00', end_color='FFFF00', fill_type='solid')
+    fill_vides = PatternFill(start_color='B7B7B7', end_color='B7B7B7', fill_type='solid')
 
     for row_num, row_data in df.iterrows():
         for col_num, cell_value in enumerate(row_data, 1):
@@ -50,13 +57,23 @@ def traiter_fichier(fichier):
             new_ws[f'{col_letter}{row_num + 2}'] = cell_value
 
             if col_letter == 'A':  # Changer cette lettre si la colonne 'Telephone' n'est pas la première
-                valide, numero_corrige = est_valide(cell_value)
-                if not valide:
-                    num_telephones_invalides += 1
-                    new_ws[f'{col_letter}{row_num + 2}'].fill = fill_invalides
-                elif len(df[df['Telephone'] == cell_value]) > 1:
-                    num_doublons += 1
-                    new_ws[f'{col_letter}{row_num + 2}'].fill = fill_doublons
+                if pd.isna(cell_value):
+                    num_telephones_vides += 1
+                    new_ws[f'{col_letter}{row_num + 2}'].fill = fill_vides
+                else:
+                    valide = df.loc[row_num, 'Valide']
+                    doublon = df.loc[row_num, 'Doublon']
+                    if not valide:
+                        num_telephones_invalides += 1
+                        new_ws[f'{col_letter}{row_num + 2}'].fill = fill_invalides
+                    elif doublon:
+                        num_doublons += 1
+                        new_ws[f'{col_letter}{row_num + 2}'].fill = fill_doublons
+
+    # Supprimer les colonnes temporaires
+    del df['Telephone_corrige']
+    del df['Valide']
+    del df['Doublon']
 
     # Sauvegarder le nouveau fichier Excel
     new_wb.save(chemin_fichier_corrige)
@@ -64,6 +81,7 @@ def traiter_fichier(fichier):
 
     print(f"Nombre de téléphones invalides : {num_telephones_invalides}")
     print(f"Nombre de doublons : {num_doublons}")
+    print(f"Nombre de téléphones vides : {num_telephones_vides}")
 
 # Fonction pour gérer le glisser-déposer
 def on_drop(event):
