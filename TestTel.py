@@ -29,6 +29,7 @@ def demander_colonnes():
     return [openpyxl.utils.column_index_from_string(col) - 1 for col in colonnes]
 
 # Fonction pour traiter le fichier Excel
+print("en cours")
 
 
 def traiter_fichier(fichier, colonnes_telephone):
